@@ -34,9 +34,9 @@ def register():
     username = data.get('username')
     password = data.get('password')
 
-    # Check if user already exists
+    # Check if user already exists (requires both username and password)
     try:
-        response = users_table.get_item(Key={'username': username})
+        response = users_table.get_item(Key={'username': username, 'password': password})
         if 'Item' in response:
             return jsonify({'message': 'User already exists!'}), 400
     except ClientError as e:
@@ -57,8 +57,8 @@ def login():
 
     # Retrieve user from DynamoDB
     try:
-        response = users_table.get_item(Key={'username': username})
-        if 'Item' not in response or response['Item']['password'] != password:
+        response = users_table.get_item(Key={'username': username, 'password': password})
+        if 'Item' not in response:
             return jsonify({'message': 'Invalid credentials!'}), 401
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
@@ -67,11 +67,20 @@ def login():
     token = jwt.encode({'user': username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)},
                        app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({'token': token})
-
+    
 @app.route('/validate', methods=['GET'])
 @token_required
 def validate():
     return jsonify({'message': 'Token is valid!'}), 200
+
+@app.route('/debug', methods=['GET'])
+def debug():
+    try:
+        dynamodb_client = boto3.client('dynamodb', region_name='us-east-1')
+        response = dynamodb_client.describe_table(TableName=table_name)
+        return jsonify(response['Table']), 200
+    except ClientError as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
