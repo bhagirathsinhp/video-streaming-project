@@ -1,3 +1,4 @@
 flask
 flask-jwt-extended
 boto3
+botocore
