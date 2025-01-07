@@ -71,7 +71,7 @@ def sync_videos_with_s3():
         # Populate DynamoDB for each video
         for original_file_name in video_files:
             # Generate a clean videoId
-            video_id = re.sub(r'[^\w\s-]', '', original_file_name('.mp4', ''))  # Remove special characters
+            video_id = re.sub(r'[^\w\s-]', '', original_file_name.replace('.mp4', ''))  # Remove special characters
             video_id = video_id.replace(' ', '-').lower()  # Replace spaces with hyphens and lowercase
 
             try:
