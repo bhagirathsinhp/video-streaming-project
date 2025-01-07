@@ -43,6 +43,23 @@ def get_video(video_id):
 @app.route('/videos/<video_id>/stream', methods=['GET'])
 def stream_video(video_id):
    
+    #Generate a pre-signed URL for streaming a video from S3.
+    try:
+        # Generate a pre-signed URL for the video
+        url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET_NAME, 'Key': f'{video_id}.mp4'},
+            ExpiresIn=3600  # URL valid for 1 hour
+        )
+        return jsonify({'streamUrl': url}), 200
+    except ClientError as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/videos/sync', methods=['POST'])
+def sync_videos_with_s3():
+
+    #Fetch all videos from S3 and update the Videos table in DynamoDB dynamically.
     try:
         # Fetch video list from S3
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME)
@@ -78,7 +95,6 @@ def stream_video(video_id):
         return jsonify({'message': 'Videos synced successfully!'}), 200
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
