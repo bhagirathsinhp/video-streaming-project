@@ -1,19 +1,18 @@
 from flask import Flask, jsonify
 import boto3
 from botocore.exceptions import ClientError
-import os
 
 app = Flask(__name__)
 
-# Load environment variables
-AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
-S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME') 
-DYNAMODB_TABLE = os.getenv('DYNAMODB_TABLE')
+# AWS Configuration
+AWS_REGION = 'us-east-1'  
+S3_BUCKET_NAME = 'dread-project-videos-bucket-2615473'  
+DYNAMODB_TABLE = 'Videos'  
 
 # Initialize AWS Services
+s3 = boto3.client('s3', region_name=AWS_REGION)
 dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
 videos_table = dynamodb.Table(DYNAMODB_TABLE)
-s3 = boto3.client('s3', region_name=AWS_REGION)
 
 @app.route('/videos', methods=['GET'])
 def get_all_videos():
