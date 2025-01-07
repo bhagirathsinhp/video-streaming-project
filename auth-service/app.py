@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 # Initialize DynamoDB
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')  # Adjust region as needed
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table_name = 'Users'
 users_table = dynamodb.Table(table_name)
 
