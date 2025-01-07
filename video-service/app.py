@@ -67,8 +67,8 @@ def stream_video(video_id):
                             'videoId': video_id,
                             'title': original_file_name.replace('.mp4', ''),  # Preserve original title without extension
                             'description': 'Default description for the video.',
-                            'duration': 'Unknown',  # Duration can be updated later
-                            'category': 'General',  # Assign a default category
+                            'duration': 'Unknown',  
+                            'category': 'General',  
                         }
                     )
             except ClientError as e:
