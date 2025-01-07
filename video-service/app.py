@@ -59,7 +59,6 @@ def stream_video(video_id):
 @app.route('/videos/sync', methods=['POST'])
 def sync_videos_with_s3():
 
-    #Fetch all videos from S3 and update the Videos table in DynamoDB dynamically.
     try:
         # Fetch video list from S3
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME)
@@ -68,11 +67,19 @@ def sync_videos_with_s3():
 
         video_files = [obj['Key'] for obj in response['Contents']]
 
-        # Populate DynamoDB for each video
+        # Populate DynamoDB and rename files in S3
         for original_file_name in video_files:
             # Generate a clean videoId
-            video_id = re.sub(r'[^\w\s-]', '', original_file_name.replace('.mp4', ''))  # Remove special characters
-            video_id = video_id.replace(' ', '-').lower()  # Replace spaces with hyphens and lowercase
+            video_id = re.sub(r'[^\w\s-]', '', original_file_name.replace('.mp4', '')).replace(' ', '-').lower()
+
+            # Rename the file in S3 if the name doesn't match video_id
+            if original_file_name != f"{video_id}.mp4":
+                s3.copy_object(
+                    Bucket=S3_BUCKET_NAME,
+                    CopySource={'Bucket': S3_BUCKET_NAME, 'Key': original_file_name},
+                    Key=f"{video_id}.mp4"
+                )
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=original_file_name)
 
             try:
                 # Check if video already exists in DynamoDB
@@ -82,17 +89,17 @@ def sync_videos_with_s3():
                     videos_table.put_item(
                         Item={
                             'videoId': video_id,
-                            'title': original_file_name.replace('.mp4', ''),  # Preserve original title without extension
+                            'title': original_file_name.replace('.mp4', ''),
                             'description': 'Default description for the video.',
-                            'duration': 'Unknown',  
-                            'category': 'General',  
+                            'duration': 'Unknown',
+                            'category': 'General',
                         }
                     )
             except ClientError as e:
                 print(f"Error syncing video {original_file_name}: {e}")
                 continue
 
-        return jsonify({'message': 'Videos synced successfully!'}), 200
+        return jsonify({'message': 'Videos synced and renamed successfully!'}), 200
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
 
