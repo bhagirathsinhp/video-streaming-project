@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import boto3
 from botocore.exceptions import ClientError
+from datetime import datetime, timezone
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -15,9 +16,8 @@ watchlist_table = dynamodb.Table(DYNAMODB_TABLE)
 
 @app.route('/watchlist', methods=['GET'])
 def get_watchlist():
-    """
-    Fetch the watchlist for a user.
-    """
+
+    #Fetch the watchlist for a user.
     username = request.args.get('username')
     if not username:
         return jsonify({'error': 'Missing username parameter'}), 400
@@ -33,9 +33,8 @@ def get_watchlist():
 
 @app.route('/watchlist', methods=['POST'])
 def add_to_watchlist():
-    """
-    Add a video to the user's watchlist.
-    """
+ 
+    #Add a video to the user's watchlist.
     data = request.json
     username = data.get('username')
     video_id = data.get('videoId')
@@ -44,13 +43,16 @@ def add_to_watchlist():
         return jsonify({'error': 'Missing username or videoId'}), 400
 
     try:
+        # Use the current timestamp if 'addedAt' is missing or invalid
+        added_at = data.get('addedAt')
+        if not added_at:
+            added_at = datetime.now(timezone.utc).isoformat()
+
         watchlist_table.put_item(
             Item={
                 'username': username,
                 'videoId': video_id,
-                'addedAt': boto3.dynamodb.types.DYNAMODB_CONTEXT.create_decimal_from_float(
-                    float(request.json.get('addedAt', ''))
-                ),
+                'addedAt': added_at, 
             }
         )
         return jsonify({'message': 'Video added to watchlist'}), 201
@@ -60,9 +62,8 @@ def add_to_watchlist():
 
 @app.route('/watchlist/<video_id>', methods=['DELETE'])
 def remove_from_watchlist(video_id):
-    """
-    Remove a video from the user's watchlist.
-    """
+
+    #Remove a video from the user's watchlist.
     username = request.args.get('username')
     if not username:
         return jsonify({'error': 'Missing username parameter'}), 400
