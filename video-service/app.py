@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 import boto3
 from botocore.exceptions import ClientError
+import re
 
 app = Flask(__name__)
 
@@ -42,54 +43,39 @@ def get_video(video_id):
 @app.route('/videos/<video_id>/stream', methods=['GET'])
 def stream_video(video_id):
    
-    #Generate a pre-signed URL for streaming a video from S3.
     try:
-        # Generate a pre-signed URL for the video
-        url = s3.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': S3_BUCKET_NAME, 'Key': f'{video_id}.mp4'},
-            ExpiresIn=3600  # URL valid for 1 hour
-        )
-        return jsonify({'streamUrl': url}), 200
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/videos/sync', methods=['POST'])
-def sync_videos():
-
-    #Fetch all videos from S3 and update the Videos table in DynamoDB dynamically.
-
-    try:
-        # Fetch video files from S3 bucket
+        # Fetch video list from S3
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME)
         if 'Contents' not in response:
-            return jsonify({'message': 'No videos found in the S3 bucket.'}), 404
+            return jsonify({'message': 'No videos found in S3.'}), 404
 
-        video_ids = [obj['Key'].replace('.mp4', '') for obj in response['Contents']]
+        video_files = [obj['Key'] for obj in response['Contents']]
 
-        # Update DynamoDB for each video
-        for video_id in video_ids:
-            # Check if video already exists
-            existing_video = videos_table.get_item(Key={'videoId': video_id})
-            if 'Item' in existing_video:
-                print(f"Video {video_id} already exists. Skipping...")
+        # Populate DynamoDB for each video
+        for original_file_name in video_files:
+            # Generate a clean videoId
+            video_id = re.sub(r'[^\w\s-]', '', original_file_name)  # Remove special characters
+            video_id = video_id.replace(' ', '-').lower()  # Replace spaces with hyphens and lowercase
+
+            try:
+                # Check if video already exists in DynamoDB
+                existing = videos_table.get_item(Key={'videoId': video_id})
+                if 'Item' not in existing:
+                    # Add new video metadata
+                    videos_table.put_item(
+                        Item={
+                            'videoId': video_id,
+                            'title': original_file_name.replace('.mp4', ''),  # Preserve original title without extension
+                            'description': 'Default description for the video.',
+                            'duration': 'Unknown',  
+                            'category': 'General',  
+                        }
+                    )
+            except ClientError as e:
+                print(f"Error syncing video {original_file_name}: {e}")
                 continue
 
-            # Add new video metadata
-            videos_table.put_item(
-                Item={
-                    'videoId': video_id,
-                    'title': video_id.replace('-', ' ').replace('_', ' ').title(),
-                    'description': 'Default description for the video.',
-                    'duration': 'Unknown',
-                    'category': 'General'
-                }
-            )
-            print(f"Added metadata for video: {video_id}")
-
-        return jsonify({'message': 'Videos table synchronized successfully.'}), 200
-
+        return jsonify({'message': 'Videos synced successfully!'}), 200
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
 
