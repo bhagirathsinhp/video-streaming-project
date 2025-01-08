@@ -1,86 +1,72 @@
 from flask import Flask, request, jsonify
-import jwt
-import datetime
 from functools import wraps
-import boto3
-from botocore.exceptions import ClientError
+from jose import jwt
+import requests
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
 
-# Initialize DynamoDB
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table_name = 'Users'
-users_table = dynamodb.Table(table_name)
+# Auth0 Configuration
+AUTH0_DOMAIN = 'dev-jvzjqeroel1nngi8.us.auth0.com'
+API_AUDIENCE = 'https://dev-jvzjqeroel1nngi8.us.auth0.com/api/v2/'
+ALGORITHMS = ['RS256']
+
+def get_public_key(token):
+ 
+    # Fetch public keys from Auth0 to verify the JWT token.
+    jwks_url = f'https://{AUTH0_DOMAIN}/.well-known/jwks.json'
+    response = requests.get(jwks_url)
+    jwks = response.json()
+
+    unverified_header = jwt.get_unverified_header(token)
+    rsa_key = {}
+    for key in jwks['keys']:
+        if key['kid'] == unverified_header['kid']:
+            rsa_key = {
+                'kty': key['kty'],
+                'kid': key['kid'],
+                'use': key['use'],
+                'n': key['n'],
+                'e': key['e']
+            }
+    return rsa_key
 
 def token_required(f):
+
+    # Middleware to validate JWT tokens in incoming requests.
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('x-access-token')
+        token = request.headers.get('Authorization', None)
         if not token:
-            return jsonify({'message': 'Token is missing!'}), 401
+            return jsonify({'error': 'Authorization header missing'}), 401
+
+        token = token.split(' ')[1]  # Remove "Bearer"
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            rsa_key = get_public_key(token)
+            payload = jwt.decode(
+                token,
+                rsa_key,
+                algorithms=ALGORITHMS,
+                audience=API_AUDIENCE,
+                issuer=f'https://{AUTH0_DOMAIN}/'
+            )
+            request.user = payload  # Attach the user payload to the request
         except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token is invalid!'}), 401
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.JWTClaimsError:
+            return jsonify({'error': 'Invalid claims'}), 401
+        except Exception as e:
+            return jsonify({'error': f'Token validation failed: {e}'}), 401
+
         return f(*args, **kwargs)
     return decorated
 
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-
-    # Check if user already exists (requires both username and password)
-    try:
-        response = users_table.get_item(Key={'username': username, 'password': password})
-        if 'Item' in response:
-            return jsonify({'message': 'User already exists!'}), 400
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 500
-
-    # Add user to DynamoDB
-    try:
-        users_table.put_item(Item={'username': username, 'password': password})
-        return jsonify({'message': 'User registered successfully!'}), 201
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-
-    # Retrieve user from DynamoDB
-    try:
-        response = users_table.get_item(Key={'username': username, 'password': password})
-        if 'Item' not in response:
-            return jsonify({'message': 'Invalid credentials!'}), 401
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 500
-
-    # Generate JWT token
-    token = jwt.encode({'user': username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)},
-                       app.config['SECRET_KEY'], algorithm="HS256")
-    return jsonify({'token': token})
-    
 @app.route('/validate', methods=['GET'])
 @token_required
 def validate():
-    return jsonify({'message': 'Token is valid!'}), 200
 
-@app.route('/debug', methods=['GET'])
-def debug():
-    try:
-        dynamodb_client = boto3.client('dynamodb', region_name='us-east-1')
-        response = dynamodb_client.describe_table(TableName=table_name)
-        return jsonify(response['Table']), 200
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 500
+    # Example of a protected route.
+    user = request.user
+    return jsonify({'message': f'Hello, {user["sub"]}! Token is valid.'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
