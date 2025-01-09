@@ -1,30 +1,30 @@
 version: "3.8"
 services:
   auth-service:
-    build: ./auth-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
     ports:
       - "5000:5000"
   course-service:
-    build: ./course-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/course-service:latest
     ports:
       - "5001:5000"
   forum-service:
-    build: ./forum-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/forum-service:latest
     ports:
       - "5002:5000"
   profile-service:
-    build: ./profile-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/profile-service:latest
     ports:
       - "5003:5000"
   progress-service:
-    build: ./progress-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/progress-service:latest
     ports:
       - "5004:5000"
   video-service:
-    build: ./video-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/video-service:latest
     ports:
       - "5005:5000"
   watchlist-service:
-    build: ./watchlist-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/watchlist-service:latest
     ports:
       - "5006:5000"
