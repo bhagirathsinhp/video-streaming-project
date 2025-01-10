@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify
 from functools import wraps
 from jose import jwt
 import requests
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Auth0 Configuration
 AUTH0_DOMAIN = 'dev-jvzjqeroel1nngi8.us.auth0.com'

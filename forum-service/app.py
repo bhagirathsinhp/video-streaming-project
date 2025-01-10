@@ -2,9 +2,11 @@ from flask import Flask, request, jsonify
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime, timezone
+from flask_cors import CORS
 
 # Initialize Flask App
 app = Flask(__name__)
+CORS(app)
 
 # AWS Configuration
 AWS_REGION = "us-east-1" 
