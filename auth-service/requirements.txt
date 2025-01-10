@@ -1,3 +1,4 @@
 flask
 requests
 python-jose[cryptography]
+flask-cors
