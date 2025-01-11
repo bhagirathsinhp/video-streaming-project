@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)
 
 # AWS DynamoDB Client
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')  # Replace with your AWS region
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')  
 user_table = dynamodb.Table('Users')
 
 @app.route('/signup', methods=['POST'])
