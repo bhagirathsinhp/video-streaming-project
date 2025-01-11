@@ -47,17 +47,14 @@ def login():
     else:
         return jsonify({'error': 'Invalid credentials'}), 401
 
-@app.route('/protected', methods=['GET'])
-def protected():
-    # Example of a protected route.
-    username = request.args.get('username')
-
-    if username:
-        response = user_table.get_item(Key={'username': username})
-        if 'Item' in response:
-            return jsonify({'message': f'Hello, {username}! Access granted.'}), 200
-
-    return jsonify({'error': 'Unauthorized access'}), 401
+@app.route('/users/<username>', methods=['DELETE'])
+def delete_user(username):
+    # Delete a user from the Users table
+    try:
+        user_table.delete_item(Key={'username': username})
+        return jsonify({'message': 'User deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

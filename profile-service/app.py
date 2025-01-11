@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import boto3
+import requests
 from botocore.exceptions import ClientError
 from flask_cors import CORS
 
@@ -10,6 +11,7 @@ CORS(app)
 # AWS Configuration
 AWS_REGION = "us-east-1"
 DYNAMODB_TABLE = "UserProfiles"
+AUTH_SERVICE_URL = "http://174.129.100.156:5000"  # Update with actual Auth Service URL
 
 # Initialize DynamoDB
 dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
@@ -25,7 +27,6 @@ def get_profile(username):
         return jsonify(response['Item']), 200
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/profile', methods=['POST'])
 def create_profile():
@@ -54,7 +55,6 @@ def create_profile():
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/profile/<username>', methods=['PUT'])
 def update_profile(username):
     # Update a user profile
@@ -81,20 +81,29 @@ def update_profile(username):
             ExpressionAttributeNames=expression_attribute_names,
             ExpressionAttributeValues=expression_attribute_values
         )
-        return jsonify({'message': 'User profile updated successfully'}), 200
+        return jsonify({'message': 'Profile updated successfully'}), 200
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/profile/<username>', methods=['DELETE'])
 def delete_profile(username):
-    # Delete a user profile by username
+    # Delete a user profile and notify the Auth Service
     try:
+        # Delete profile from UserProfiles table
         profiles_table.delete_item(Key={'username': username})
-        return jsonify({'message': 'User profile deleted successfully'}), 200
+
+        # Notify Auth Service to delete user from Users table
+        auth_response = requests.delete(f"{AUTH_SERVICE_URL}/users/{username}")
+        if auth_response.status_code != 200:
+            return jsonify({
+                'message': 'Profile deleted, but failed to delete user in Auth Service',
+                'error': auth_response.json()
+            }), 500
+
+        return jsonify({'message': 'User profile and authentication data deleted successfully'}), 200
+
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

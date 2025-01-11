@@ -42,6 +42,7 @@ services:
     environment:
       AWS_REGION: "us-east-1"
       DYNAMODB_TABLE: "UserProfiles"
+      AUTH_SERVICE_URL: "http://auth-service:5000"
     networks:
       - app-network
 
