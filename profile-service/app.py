@@ -11,7 +11,7 @@ CORS(app)
 # AWS Configuration
 AWS_REGION = "us-east-1"
 DYNAMODB_TABLE = "UserProfiles"
-AUTH_SERVICE_URL = "http://174.129.100.156:5000"  # Update with actual Auth Service URL
+AUTH_SERVICE_URL = "http://174.129.100.156:5000"  
 
 # Initialize DynamoDB
 dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
