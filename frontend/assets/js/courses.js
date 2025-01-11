@@ -1,100 +1,124 @@
-// courses.js
+const COURSE_SERVICE_BASE_URL = "http://174.129.100.156:5001";
+const VIDEO_SERVICE_BASE_URL = "http://174.129.100.156:5005";
+const PROGRESS_SERVICE_BASE_URL = "http://174.129.100.156:5004";
 
-// Base URL for API calls
-const BASE_URL = "http://174.129.100.156:5001";
+document.addEventListener("DOMContentLoaded", () => {
+  loadCourses();
 
-// Utility function to make API calls
-async function apiCall(endpoint, method = "GET", data = null) {
-  const headers = { "Content-Type": "application/json" };
-  const token = localStorage.getItem("token");
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  // Handle logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("username");
+    window.location.href = "../index.html";
+  });
+});
+
+// Load all courses
+async function loadCourses() {
+  try {
+    const response = await fetch(`${COURSE_SERVICE_BASE_URL}/courses`);
+    const courses = await response.json();
+
+    if (response.ok) {
+      const coursesContainer = document.getElementById("coursesContainer");
+      coursesContainer.innerHTML = courses
+        .map(
+          (course) => `
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">${course.title}</h5>
+                            <p class="card-text">${course.description}</p>
+                            <button class="btn btn-primary" onclick="viewCourseDetails('${course.courseId}')">View Details</button>
+                        </div>
+                    </div>
+                </div>
+            `
+        )
+        .join("");
+    } else {
+      showAlert("danger", "Failed to load courses.");
+    }
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// View course details
+async function viewCourseDetails(courseId) {
+  try {
+    const response = await fetch(
+      `${COURSE_SERVICE_BASE_URL}/courses/${courseId}`
+    );
+    const course = await response.json();
+
+    if (response.ok) {
+      document.getElementById("courseTitle").textContent =
+        course.title || "N/A";
+      document.getElementById("courseDescription").textContent =
+        course.description || "N/A";
+      document.getElementById("courseCategory").textContent =
+        course.category || "N/A";
+      document.getElementById("courseVideos").innerHTML = course.videos
+        .map(
+          (video) => `
+                <li>${video} <button class="btn btn-sm btn-success" onclick="playVideo('${video}')">Play</button></li>
+            `
+        )
+        .join("");
+      await loadProgress(courseId);
+      const modal = new bootstrap.Modal(
+        document.getElementById("courseDetailsModal")
+      );
+      modal.show();
+    } else {
+      showAlert("danger", "Failed to fetch course details.");
+    }
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// Play video
+function playVideo(videoId) {
+  const videoUrl = `${VIDEO_SERVICE_BASE_URL}/videos/${videoId}/stream`;
+  window.open(videoUrl, "_blank");
+}
+
+// Load progress
+async function loadProgress(courseId) {
+  const username = localStorage.getItem("username");
+  if (!username) return;
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : null,
-    });
+    const response = await fetch(
+      `${PROGRESS_SERVICE_BASE_URL}/progress/${username}`
+    );
+    const progress = await response.json();
 
-    if (!response.ok) {
-      throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+    if (response.ok) {
+      const courseProgress = progress.find((p) => p.courseId === courseId);
+      document.getElementById("courseProgress").innerHTML = `
+                <strong>Progress:</strong> ${
+                  courseProgress ? courseProgress.progressPercentage : 0
+                }% completed
+            `;
+    } else {
+      document.getElementById("courseProgress").innerHTML =
+        "<strong>Progress:</strong> 0% completed";
     }
-
-    return await response.json();
   } catch (error) {
-    console.error("API Call Failed:", error);
-    return { error: error.message };
+    document.getElementById("courseProgress").innerHTML =
+      "<strong>Progress:</strong> Unable to fetch progress";
   }
 }
 
-// Handle Courses Page
-async function loadCourses() {
-  const coursesContainer = document.getElementById("courses-container");
-
-  const courses = await apiCall("/courses");
-
-  if (courses.error) {
-    coursesContainer.innerHTML = `<p class="text-danger">Failed to load courses: ${courses.error}</p>`;
-    return;
-  }
-
-  courses.forEach((course) => {
-    const courseCard = `
-      <div class="col-md-4">
-        <div class="card mb-4">
-          <div class="card-body">
-            <h5 class="card-title">${course.title}</h5>
-            <p class="card-text">${course.description}</p>
-            <p class="text-muted">Category: ${course.category}</p>
-            <a href="/courses/course-details.html?courseId=${course.courseId}" class="btn btn-primary">View Details</a>
-          </div>
+// Utility function to display alerts
+function showAlert(type, message) {
+  const alertContainer = document.getElementById("alertContainer");
+  alertContainer.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-      </div>
     `;
-    coursesContainer.insertAdjacentHTML("beforeend", courseCard);
-  });
 }
-
-// Handle Course Details Page
-async function loadCourseDetails() {
-  const params = new URLSearchParams(window.location.search);
-  const courseId = params.get("courseId");
-
-  if (!courseId) {
-    document.body.innerHTML = `<p class="text-danger">Invalid Course ID</p>`;
-    return;
-  }
-
-  const courseDetails = await apiCall(`/courses/${courseId}`);
-
-  if (courseDetails.error) {
-    document.body.innerHTML = `<p class="text-danger">Failed to load course details: ${courseDetails.error}</p>`;
-    return;
-  }
-
-  // Populate course details
-  document.getElementById("course-title").textContent = courseDetails.title;
-  document.getElementById("course-description").textContent =
-    courseDetails.description;
-
-  // Populate videos list
-  const videosList = document.getElementById("videos-list");
-  courseDetails.videos.forEach((video) => {
-    const videoItem = `
-      <li class="list-group-item">
-        ${video.title}
-        <a href="/videos/stream.html?videoId=${video.videoId}" class="btn btn-primary btn-sm float-end">Watch</a>
-      </li>
-    `;
-    videosList.insertAdjacentHTML("beforeend", videoItem);
-  });
-}
-
-// Check which page is loaded and execute the relevant function
-document.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("courses-container")) {
-    loadCourses(); // Load Courses Page
-  } else if (document.getElementById("course-title")) {
-    loadCourseDetails(); // Load Course Details Page
-  }
-});
