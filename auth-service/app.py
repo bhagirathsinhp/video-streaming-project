@@ -1,74 +1,64 @@
+import boto3
 from flask import Flask, request, jsonify
-from functools import wraps
-from jose import jwt
-import requests
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-# Auth0 Configuration
-AUTH0_DOMAIN = 'dev-jvzjqeroel1nngi8.us.auth0.com'
-API_AUDIENCE = 'https://dev-jvzjqeroel1nngi8.us.auth0.com/api/v2/'
-ALGORITHMS = ['RS256']
+# AWS DynamoDB Client
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')  # Replace with your AWS region
+user_table = dynamodb.Table('Users')
 
-def get_public_key(token):
- 
-    # Fetch public keys from Auth0 to verify the JWT token.
-    jwks_url = f'https://{AUTH0_DOMAIN}/.well-known/jwks.json'
-    response = requests.get(jwks_url)
-    jwks = response.json()
+@app.route('/signup', methods=['POST'])
+def signup():
+    """Sign up a new user and store their details in DynamoDB."""
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
 
-    unverified_header = jwt.get_unverified_header(token)
-    rsa_key = {}
-    for key in jwks['keys']:
-        if key['kid'] == unverified_header['kid']:
-            rsa_key = {
-                'kty': key['kty'],
-                'kid': key['kid'],
-                'use': key['use'],
-                'n': key['n'],
-                'e': key['e']
-            }
-    return rsa_key
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
 
-def token_required(f):
+    # Check if the username already exists
+    response = user_table.get_item(Key={'username': username})
+    if 'Item' in response:
+        return jsonify({'error': 'Username already exists'}), 400
 
-    # Middleware to validate JWT tokens in incoming requests.
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization', None)
-        if not token:
-            return jsonify({'error': 'Authorization header missing'}), 401
+    # Add the new user to the table
+    user_table.put_item(Item={'username': username, 'password': password})
+    return jsonify({'message': 'User created successfully!'}), 201
 
-        token = token.split(' ')[1]  # Remove "Bearer"
-        try:
-            rsa_key = get_public_key(token)
-            payload = jwt.decode(
-                token,
-                rsa_key,
-                algorithms=ALGORITHMS,
-                audience=API_AUDIENCE,
-                issuer=f'https://{AUTH0_DOMAIN}/'
-            )
-            request.user = payload  # Attach the user payload to the request
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Token has expired'}), 401
-        except jwt.JWTClaimsError:
-            return jsonify({'error': 'Invalid claims'}), 401
-        except Exception as e:
-            return jsonify({'error': f'Token validation failed: {e}'}), 401
+@app.route('/login', methods=['POST'])
+def login():
+    """Authenticate user by validating against DynamoDB."""
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
 
-        return f(*args, **kwargs)
-    return decorated
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
 
-@app.route('/validate', methods=['GET'])
-@token_required
-def validate():
+    # Query DynamoDB for the user with both username and password
+    response = user_table.get_item(Key={'username': username, 'password': password})
+    user = response.get('Item')
 
-    # Example of a protected route.
-    user = request.user
-    return jsonify({'message': f'Hello, {user["sub"]}! Token is valid.'}), 200
+    if user:
+        return jsonify({'message': f'Welcome, {username}! You are logged in.'}), 200
+    else:
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+@app.route('/protected', methods=['GET'])
+def protected():
+    """Example of a protected route."""
+    username = request.args.get('username')
+    password = request.args.get('password')
+
+    if username and password:
+        response = user_table.get_item(Key={'username': username, 'password': password})
+        if 'Item' in response:
+            return jsonify({'message': f'Hello, {username}! Access granted.'}), 200
+
+    return jsonify({'error': 'Unauthorized access'}), 401
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

@@ -7,9 +7,8 @@ services:
     ports:
       - "5000:5000"
     environment:
-      AUTH0_DOMAIN: "dev-jvzjqeroel1nngi8.us.auth0.com"
-      API_AUDIENCE: "https://dev-jvzjqeroel1nngi8.us.auth0.com/api/v2/"
-      ALGORITHMS: "RS256"
+      AWS_REGION: "us-east-1"
+      DYNAMODB_TABLE: "Users"
     networks:
       - app-network
 
