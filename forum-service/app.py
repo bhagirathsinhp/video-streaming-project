@@ -18,8 +18,9 @@ discussions_table = dynamodb.Table(DYNAMODB_TABLE)
 
 @app.route('/forum/<course_id>', methods=['POST'])
 def start_discussion(course_id):
-
-    # Start a new discussion for a course. 
+    """
+    Start a new discussion for a course.
+    """
     data = request.json
     discussion_id = data.get('discussionId')
     title = data.get('title')
@@ -48,8 +49,9 @@ def start_discussion(course_id):
 
 @app.route('/forum/<course_id>', methods=['GET'])
 def get_discussions(course_id):
-
-    # Retrieve all discussions for a specific course.
+    """
+    Retrieve all discussions for a specific course.
+    """
     try:
         response = discussions_table.query(
             KeyConditionExpression=boto3.dynamodb.conditions.Key('courseId').eq(course_id)
@@ -61,8 +63,9 @@ def get_discussions(course_id):
 
 @app.route('/forum/<course_id>/<discussion_id>/reply', methods=['POST'])
 def add_reply(course_id, discussion_id):
-
-    # Add a reply to a specific discussion.
+    """
+    Add a reply to a specific discussion.
+    """
     data = request.json
     reply_id = data.get('replyId')
     content = data.get('content')
@@ -99,11 +102,30 @@ def add_reply(course_id, discussion_id):
 
 @app.route('/forum/<course_id>/<discussion_id>', methods=['DELETE'])
 def delete_discussion(course_id, discussion_id):
+    """
+    Delete a discussion for a specific course. Only the author of the discussion can delete it.
+    """
+    username = request.args.get('username')  # The username of the requester
 
-    # Delete a discussion for a specific course.
+    if not username:
+        return jsonify({'error': 'Username is required to delete a discussion'}), 400
+
     try:
+        # Fetch the discussion to verify ownership
+        response = discussions_table.get_item(Key={'courseId': course_id, 'discussionId': discussion_id})
+        if 'Item' not in response:
+            return jsonify({'error': 'Discussion not found'}), 404
+
+        discussion = response['Item']
+
+        # Check if the requester is the author of the discussion
+        if discussion['author'] != username:
+            return jsonify({'error': 'You are not authorized to delete this discussion'}), 403
+
+        # Delete the discussion
         discussions_table.delete_item(Key={'courseId': course_id, 'discussionId': discussion_id})
         return jsonify({'message': 'Discussion deleted successfully'}), 200
+
     except ClientError as e:
         return jsonify({'error': str(e)}), 500
 
