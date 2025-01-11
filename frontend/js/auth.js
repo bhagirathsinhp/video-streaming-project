@@ -1,4 +1,4 @@
-const BASE_URL = "http://174.129.100.156";
+const BASE_URL = "http://174.129.100.156:5000";
 
 // Utility function to make API calls
 async function apiCall(endpoint, method = "GET", data = null) {
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
         errorMessageDiv.textContent = `Error: ${result.error}`;
       } else {
         alert("Account created successfully! Please log in.");
-        window.location.href = "/auth/login.html";
+        window.location.href = "../auth/login.html";
       }
     });
   }
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         localStorage.setItem("username", username);
         alert("Login successful!");
-        window.location.href = "/index.html";
+        window.location.href = "../index.html";
       }
     });
   }

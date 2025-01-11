@@ -1,5 +1,5 @@
 // Base URL for API calls
-const BASE_URL = "http://174.129.100.156";
+const BASE_URL = "http://174.129.100.156:5006";
 
 // Utility function to make API calls
 async function apiCall(endpoint, method = "GET", data = null) {
