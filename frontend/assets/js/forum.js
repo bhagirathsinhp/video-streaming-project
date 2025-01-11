@@ -1,170 +1,246 @@
-// Base URL for API calls
-const BASE_URL = "http://174.129.100.156:5002";
+const FORUM_SERVICE_BASE_URL = "http://174.129.100.156:5002";
+const COURSE_SERVICE_BASE_URL = "http://174.129.100.156:5001";
 
-// Utility function to make API calls
-async function apiCall(endpoint, method = "GET", data = null) {
-  const headers = { "Content-Type": "application/json" };
-  const token = localStorage.getItem("token");
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+let discussionsCache = []; // Cache discussions for the selected course
 
-  try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : null,
+document.addEventListener("DOMContentLoaded", () => {
+  loadCourses();
+
+  // Handle logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("username");
+    window.location.href = "../index.html";
+  });
+
+  // Handle course selection
+  document.getElementById("selectedCourse").addEventListener("change", (e) => {
+    loadDiscussions(e.target.value);
+  });
+
+  // Handle starting a new discussion
+  document
+    .getElementById("discussionForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await startDiscussion();
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
-    }
+  // Ensure modal backdrop is cleared on closure
+  document
+    .getElementById("threadDetailsModal")
+    .addEventListener("hidden.bs.modal", () => {
+      const modalBackdrop = document.querySelector(".modal-backdrop");
+      if (modalBackdrop) {
+        modalBackdrop.remove(); // Remove lingering backdrop
+      }
+    });
+});
 
-    return await response.json();
+// Load all courses into the dropdown
+async function loadCourses() {
+  try {
+    const response = await fetch(`${COURSE_SERVICE_BASE_URL}/courses`);
+    const courses = await response.json();
+
+    if (response.ok) {
+      const courseSelector = document.getElementById("selectedCourse");
+      courseSelector.innerHTML = `<option value="">Select a Course</option>`;
+      courses.forEach((course) => {
+        courseSelector.innerHTML += `<option value="${course.courseId}">${course.title}</option>`;
+      });
+    } else {
+      showAlert("danger", "Failed to load courses.");
+    }
   } catch (error) {
-    console.error("API Call Failed:", error);
-    return { error: error.message };
+    showAlert("danger", "Server error. Please try again.");
   }
 }
 
-// Load all discussions for the course
-async function loadDiscussions() {
-  const discussionsContainer = document.getElementById("discussions-container");
-  const params = new URLSearchParams(window.location.search);
-  const courseId = params.get("courseId");
-
+// Load discussions for a specific course
+async function loadDiscussions(courseId) {
   if (!courseId) {
-    discussionsContainer.innerHTML = `<p class="text-danger">Invalid Course ID</p>`;
+    document.getElementById("discussionsContainer").innerHTML = "";
+    discussionsCache = [];
     return;
   }
 
-  const discussions = await apiCall(`/forum/${courseId}`);
+  try {
+    const response = await fetch(`${FORUM_SERVICE_BASE_URL}/forum/${courseId}`);
+    const discussions = await response.json();
 
-  if (discussions.error) {
-    discussionsContainer.innerHTML = `<p class="text-danger">Failed to load discussions: ${discussions.error}</p>`;
+    if (response.ok) {
+      discussionsCache = discussions; // Cache discussions for this course
+      const discussionsContainer = document.getElementById(
+        "discussionsContainer"
+      );
+      discussionsContainer.innerHTML = discussions
+        .map(
+          (discussion) => `
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">${discussion.title}</h5>
+                            <p class="card-text">${discussion.content}</p>
+                            <button class="btn btn-primary" onclick="viewThread('${discussion.discussionId}')">View Thread</button>
+                        </div>
+                    </div>
+                </div>
+            `
+        )
+        .join("");
+    } else {
+      showAlert("danger", "Failed to load discussions.");
+    }
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// View thread details from cached discussions
+function viewThread(discussionId) {
+  const discussion = discussionsCache.find(
+    (d) => d.discussionId === discussionId
+  );
+
+  if (!discussion) {
+    showAlert("danger", "Discussion not found.");
     return;
   }
 
-  if (discussions.length === 0) {
-    discussionsContainer.innerHTML = `<p class="text-muted">No discussions found. Be the first to start a discussion!</p>`;
-    return;
-  }
+  // Display thread details
+  document.getElementById("threadTitle").textContent = discussion.title;
+  document.getElementById("threadContent").textContent = discussion.content;
+  renderReplies(discussion);
 
-  discussions.forEach((discussion) => {
-    const discussionCard = `
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">${discussion.title}</h5>
-          <p>${discussion.content}</p>
-          <p class="text-muted">By: ${discussion.author} | ${new Date(
-      discussion.createdAt
-    ).toLocaleString()}</p>
-          <button class="btn btn-secondary btn-sm" onclick="replyToDiscussion('${courseId}', '${
-      discussion.discussionId
-    }')">Reply</button>
-        </div>
-        <ul class="list-group list-group-flush" id="replies-${
-          discussion.discussionId
-        }">
-          <!-- Replies will be dynamically loaded here -->
-        </ul>
-      </div>
-    `;
-    discussionsContainer.insertAdjacentHTML("beforeend", discussionCard);
+  // Properly reference the `postReply` function
+  document.getElementById("replyForm").onsubmit = (e) => {
+    e.preventDefault();
+    postReply(discussionId); // Pass the discussionId to postReply
+  };
 
-    // Load replies for each discussion
-    loadReplies(courseId, discussion.discussionId);
-  });
+  const modal = new bootstrap.Modal(
+    document.getElementById("threadDetailsModal")
+  );
+  modal.show();
+}
+
+// Helper function to render replies in the modal
+function renderReplies(discussion) {
+  document.getElementById("threadReplies").innerHTML = (
+    discussion.replies || []
+  )
+    .map(
+      (reply) => `
+        <li>${reply.content} - <strong>${reply.author}</strong></li>
+    `
+    )
+    .join("");
 }
 
 // Start a new discussion
-async function startDiscussion(e) {
-  e.preventDefault();
+async function startDiscussion() {
+  const courseId = document.getElementById("selectedCourse").value;
+  const username = localStorage.getItem("username");
+  const title = document.getElementById("discussionTitle").value;
+  const content = document.getElementById("discussionContent").value;
 
-  const params = new URLSearchParams(window.location.search);
-  const courseId = params.get("courseId");
-
-  if (!courseId) {
-    alert("Invalid Course ID.");
+  if (!courseId || !username) {
+    showAlert("danger", "Please select a course and ensure you are logged in.");
     return;
   }
 
-  const title = document.getElementById("title").value;
-  const content = document.getElementById("content").value;
-  const author = localStorage.getItem("username");
+  try {
+    const response = await fetch(
+      `${FORUM_SERVICE_BASE_URL}/forum/${courseId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          discussionId: `${Date.now()}`, // Unique ID based on timestamp
+          title,
+          content,
+          author: username,
+        }),
+      }
+    );
 
-  if (!author) {
-    alert("Please log in to start a discussion.");
-    return;
-  }
-
-  const result = await apiCall(`/forum/${courseId}`, "POST", {
-    discussionId: `discussion-${Date.now()}`,
-    title,
-    content,
-    author,
-  });
-
-  if (result.error) {
-    alert(`Error starting discussion: ${result.error}`);
-  } else {
-    alert("Discussion posted successfully!");
-    document.getElementById("new-discussion-form").reset();
-    loadDiscussions(); // Reload discussions
-  }
-}
-
-// Load replies for a discussion
-async function loadReplies(courseId, discussionId) {
-  const repliesContainer = document.getElementById(`replies-${discussionId}`);
-  const discussion = await apiCall(`/forum/${courseId}`);
-
-  if (!discussion || !discussion.replies) return;
-
-  discussion.replies.forEach((reply) => {
-    const replyItem = `
-      <li class="list-group-item">
-        <p>${reply.content}</p>
-        <p class="text-muted">By: ${reply.author} | ${new Date(
-      reply.createdAt
-    ).toLocaleString()}</p>
-      </li>
-    `;
-    repliesContainer.insertAdjacentHTML("beforeend", replyItem);
-  });
-}
-
-// Add a reply to a discussion
-async function replyToDiscussion(courseId, discussionId) {
-  const replyContent = prompt("Enter your reply:");
-  if (!replyContent) return;
-
-  const author = localStorage.getItem("username");
-  if (!author) {
-    alert("Please log in to reply.");
-    return;
-  }
-
-  const result = await apiCall(
-    `/forum/${courseId}/${discussionId}/reply`,
-    "POST",
-    {
-      replyId: `reply-${Date.now()}`,
-      content: replyContent,
-      author,
+    if (response.ok) {
+      showAlert("success", "Discussion started successfully.");
+      document.getElementById("discussionForm").reset();
+      bootstrap.Modal.getInstance(
+        document.getElementById("startDiscussionModal")
+      ).hide();
+      loadDiscussions(courseId); // Refresh discussions
+    } else {
+      showAlert("danger", "Failed to start discussion. Please try again.");
     }
-  );
-
-  if (result.error) {
-    alert(`Error posting reply: ${result.error}`);
-  } else {
-    alert("Reply posted successfully!");
-    loadDiscussions(); // Reload discussions
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
   }
 }
 
-// Initialize the page
-document.addEventListener("DOMContentLoaded", () => {
-  loadDiscussions();
-  document
-    .getElementById("new-discussion-form")
-    .addEventListener("submit", startDiscussion);
-});
+// Post a reply to a thread
+async function postReply(discussionId) {
+  const username = localStorage.getItem("username");
+  const content = document.getElementById("replyContent").value;
+
+  if (!username || !content) {
+    showAlert("danger", "All fields are required.");
+    return;
+  }
+
+  const courseId = document.getElementById("selectedCourse").value;
+
+  try {
+    const response = await fetch(
+      `${FORUM_SERVICE_BASE_URL}/forum/${courseId}/${discussionId}/reply`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          replyId: `${Date.now()}`, // Unique ID
+          content,
+          author: username,
+        }),
+      }
+    );
+
+    if (response.ok) {
+      showAlert("success", "Reply posted successfully.");
+
+      // Update the discussion cache with the new reply
+      const discussion = discussionsCache.find(
+        (d) => d.discussionId === discussionId
+      );
+      if (discussion) {
+        discussion.replies.push({
+          replyId: `${Date.now()}`,
+          content,
+          author: username,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      // Refresh the replies in the modal
+      renderReplies(discussion);
+
+      // Clear the reply input field
+      document.getElementById("replyContent").value = "";
+    } else {
+      showAlert("danger", "Failed to post reply.");
+    }
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// Utility function to display alerts
+function showAlert(type, message) {
+  const alertContainer = document.getElementById("alertContainer");
+  alertContainer.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}
