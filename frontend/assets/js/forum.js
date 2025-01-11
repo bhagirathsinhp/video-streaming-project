@@ -101,6 +101,7 @@ function viewThread(discussionId) {
   const discussion = discussionsCache.find(
     (d) => d.discussionId === discussionId
   );
+  const username = localStorage.getItem("username");
 
   if (!discussion) {
     showAlert("danger", "Discussion not found.");
@@ -112,7 +113,15 @@ function viewThread(discussionId) {
   document.getElementById("threadContent").textContent = discussion.content;
   renderReplies(discussion);
 
-  // Properly reference the `postReply` function
+  // Show or hide the "Delete Thread" button based on ownership
+  const deleteThreadBtn = document.getElementById("deleteThreadBtn");
+  if (discussion.author === username) {
+    deleteThreadBtn.classList.remove("d-none");
+    deleteThreadBtn.setAttribute("data-discussion-id", discussionId); // Store discussionId
+  } else {
+    deleteThreadBtn.classList.add("d-none");
+  }
+
   document.getElementById("replyForm").onsubmit = (e) => {
     e.preventDefault();
     postReply(discussionId); // Pass the discussionId to postReply
@@ -228,6 +237,69 @@ async function postReply(discussionId) {
       document.getElementById("replyContent").value = "";
     } else {
       showAlert("danger", "Failed to post reply.");
+    }
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// Delete a thread
+async function deleteThread() {
+  const courseId = document.getElementById("selectedCourse").value;
+  const discussionId = document
+    .getElementById("deleteThreadBtn")
+    .getAttribute("data-discussion-id");
+  const username = localStorage.getItem("username"); // Get the logged-in user's username
+
+  if (!courseId || !discussionId) {
+    showAlert("danger", "Invalid thread selected for deletion.");
+    return;
+  }
+
+  if (!username) {
+    showAlert("danger", "You must be logged in to delete a thread.");
+    return;
+  }
+
+  if (
+    !confirm(
+      "Are you sure you want to delete this thread? This action cannot be undone."
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${FORUM_SERVICE_BASE_URL}/forum/${courseId}/${discussionId}?username=${encodeURIComponent(
+        username
+      )}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (response.ok) {
+      showAlert("success", "Thread deleted successfully.");
+
+      // Remove the deleted thread from the cached discussions
+      discussionsCache = discussionsCache.filter(
+        (d) => d.discussionId !== discussionId
+      );
+
+      // Refresh discussions on the page
+      loadDiscussions(courseId);
+
+      // Close the modal
+      bootstrap.Modal.getInstance(
+        document.getElementById("threadDetailsModal")
+      ).hide();
+    } else {
+      const errorData = await response.json();
+      showAlert(
+        "danger",
+        errorData.error || "Failed to delete the thread. Please try again."
+      );
     }
   } catch (error) {
     showAlert("danger", "Server error. Please try again.");

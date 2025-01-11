@@ -24,10 +24,10 @@
       <p class="text-center">Access the services below:</p>
     </div>
 
-    <!-- Service Cards -->
+    <!-- Simplified Service Cards -->
     <div class="container mt-4">
       <div class="row">
-        <!-- Auth Service -->
+        <!-- Profile Service -->
         <div class="col-md-4">
           <div class="card">
             <div class="card-body text-center">
@@ -65,43 +65,28 @@
         </div>
       </div>
       <div class="row mt-4">
-        <!-- Video Service -->
-        <div class="col-md-4">
+        <!-- Videos & Watchlist -->
+        <div class="col-md-6">
           <div class="card">
             <div class="card-body text-center">
-              <h5 class="card-title">Videos</h5>
-              <p class="card-text">Browse and stream videos.</p>
-              <a href="./services/videos.html" class="btn btn-primary"
+              <h5 class="card-title">Videos & Watchlist</h5>
+              <p class="card-text">Browse videos or manage your watchlist.</p>
+              <a href="./services/videos.html" class="btn btn-primary me-2"
                 >Go to Videos</a
               >
-            </div>
-          </div>
-        </div>
-        <!-- Watchlist Service -->
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body text-center">
-              <h5 class="card-title">Watchlist</h5>
-              <p class="card-text">Manage your video watchlist.</p>
-              <a href="./services/watchlist.html" class="btn btn-primary"
+              <a href="./services/watchlist.html" class="btn btn-secondary"
                 >Go to Watchlist</a
               >
             </div>
           </div>
         </div>
-        <!-- Progress Service -->
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body text-center">
-              <h5 class="card-title">Progress</h5>
-              <p class="card-text">Track your learning progress.</p>
-              <a href="./services/progress.html" class="btn btn-primary"
-                >Go to Progress</a
-              >
-            </div>
-          </div>
-        </div>
       </div>
+    </div>
+
+    <!-- Progress Overview Section -->
+    <div class="container mt-5">
+      <h3>Your Progress Overview</h3>
+      <div id="progressOverviewContainer" class="row mt-4"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
