@@ -1,80 +1,67 @@
-// Base URL for API calls
-const BASE_URL = "http://174.129.100.156:5004";
+const PROGRESS_SERVICE_BASE_URL = "http://174.129.100.156:5004";
 
-// Utility function to make API calls
-async function apiCall(endpoint, method = "GET", data = null) {
-  const headers = { "Content-Type": "application/json" };
-  const token = localStorage.getItem("token");
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : null,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("API Call Failed:", error);
-    return { error: error.message };
-  }
-}
-
-// Load progress for the user
-async function loadProgress() {
-  const progressContainer = document.getElementById("progress-container");
+document.addEventListener("DOMContentLoaded", () => {
   const username = localStorage.getItem("username");
+  const courseId = new URLSearchParams(window.location.search).get("courseId");
 
   if (!username) {
-    progressContainer.innerHTML = `<p class="text-danger">Please log in to view your progress.</p>`;
+    window.location.href = "../index.html";
     return;
   }
 
-  const progressData = await apiCall(`/progress/${username}`);
+  loadProgressDetails(username, courseId);
 
-  if (progressData.error) {
-    progressContainer.innerHTML = `<p class="text-danger">Failed to load progress: ${progressData.error}</p>`;
-    return;
-  }
-
-  if (progressData.length === 0) {
-    progressContainer.innerHTML = `<p class="text-muted">No progress data found. Start a course to track your progress!</p>`;
-    return;
-  }
-
-  progressData.forEach((item) => {
-    const progressCard = `
-      <div class="col-md-6 mb-4">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">${item.courseId}</h5>
-            <p class="text-muted">Videos Watched: ${item.videosWatched.length}</p>
-            <p class="text-muted">Progress: ${item.progressPercentage}%</p>
-            <div class="progress">
-              <div 
-                class="progress-bar" 
-                role="progressbar" 
-                style="width: ${item.progressPercentage}%" 
-                aria-valuenow="${item.progressPercentage}" 
-                aria-valuemin="0" 
-                aria-valuemax="100">
-                ${item.progressPercentage}%
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    progressContainer.insertAdjacentHTML("beforeend", progressCard);
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("username");
+    window.location.href = "../index.html";
   });
+});
+
+// Load progress details for a specific course
+async function loadProgressDetails(username, courseId) {
+  try {
+    const response = await fetch(
+      `${PROGRESS_SERVICE_BASE_URL}/progress/${username}`
+    );
+    const progressData = await response.json();
+
+    if (response.ok) {
+      const courseProgress = progressData.find((p) => p.courseId === courseId);
+
+      if (!courseProgress) {
+        document.getElementById("progressDetailsContainer").innerHTML = `
+                    <div class="alert alert-warning">No progress found for this course.</div>
+                `;
+        return;
+      }
+
+      // Render progress details
+      document.getElementById("progressDetailsContainer").innerHTML = `
+                <h5>Course: ${courseId}</h5>
+                <p><strong>Progress:</strong> ${
+                  courseProgress.progressPercentage
+                }%</p>
+                <ul>
+                    ${courseProgress.videosWatched
+                      .map((video) => `<li>${video}</li>`)
+                      .join("")}
+                </ul>
+            `;
+    } else {
+      showAlert("danger", "Failed to load progress.");
+    }
+  } catch (error) {
+    showAlert("danger", "Server error. Please try again.");
+  }
 }
 
-// Initialize the page
-document.addEventListener("DOMContentLoaded", () => {
-  loadProgress();
-});
+// Utility function to display alerts
+function showAlert(type, message) {
+  const alertContainer = document.getElementById("alertContainer");
+  alertContainer.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}

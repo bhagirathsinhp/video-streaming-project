@@ -21,22 +21,21 @@
       <h2 class="text-center">Courses</h2>
       <div id="alertContainer" class="mt-3"></div>
       <div class="row" id="coursesContainer"></div>
+      <div class="mt-5" id="courseDetailsContainer"></div>
     </div>
 
-    <!-- Course Details Modal -->
+    <!-- Video Modal -->
     <div
       class="modal fade"
-      id="courseDetailsModal"
+      id="videoModal"
       tabindex="-1"
-      aria-labelledby="courseDetailsModalLabel"
+      aria-labelledby="videoModalLabel"
       aria-hidden="true"
     >
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="courseDetailsModalLabel">
-              Course Details
-            </h5>
+            <h5 class="modal-title" id="videoModalLabel">Video Player</h5>
             <button
               type="button"
               class="btn-close"
@@ -45,23 +44,7 @@
             ></button>
           </div>
           <div class="modal-body">
-            <h5 id="courseTitle"></h5>
-            <p id="courseDescription"></p>
-            <p><strong>Category:</strong> <span id="courseCategory"></span></p>
-            <div>
-              <h6>Videos</h6>
-              <ul id="courseVideos"></ul>
-            </div>
-            <div id="courseProgress" class="mt-3"></div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Close
-            </button>
+            <video id="videoPlayer" class="w-100" controls></video>
           </div>
         </div>
       </div>
