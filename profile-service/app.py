@@ -17,8 +17,7 @@ profiles_table = dynamodb.Table(DYNAMODB_TABLE)
 
 @app.route('/profile/<username>', methods=['GET'])
 def get_profile(username):
-
-    # Fetch a user profile by username.
+    # Fetch a user profile by username
     try:
         response = profiles_table.get_item(Key={'username': username})
         if 'Item' not in response:
@@ -30,8 +29,7 @@ def get_profile(username):
 
 @app.route('/profile', methods=['POST'])
 def create_profile():
-
-    # Create a new user profile.
+    # Create a new user profile
     data = request.json
     username = data.get('username')
     name = data.get('name')
@@ -59,8 +57,7 @@ def create_profile():
 
 @app.route('/profile/<username>', methods=['PUT'])
 def update_profile(username):
-
-    # Update a user profile.
+    # Update a user profile
     data = request.json
     updates = {}
 
@@ -73,14 +70,16 @@ def update_profile(username):
         return jsonify({'error': 'No updates provided'}), 400
 
     try:
-        # Update the user profile
-        update_expression = "SET " + ", ".join(f"{k} = :{k}" for k in updates.keys())
-        expression_values = {f":{k}": v for k, v in updates.items()}
+        # Use ExpressionAttributeNames for reserved keywords
+        update_expression = "SET " + ", ".join(f"#{k} = :{k}" for k in updates.keys())
+        expression_attribute_names = {f"#{k}": k for k in updates.keys()}
+        expression_attribute_values = {f":{k}": v for k, v in updates.items()}
 
         profiles_table.update_item(
             Key={'username': username},
             UpdateExpression=update_expression,
-            ExpressionAttributeValues=expression_values
+            ExpressionAttributeNames=expression_attribute_names,
+            ExpressionAttributeValues=expression_attribute_values
         )
         return jsonify({'message': 'User profile updated successfully'}), 200
     except ClientError as e:
@@ -89,8 +88,7 @@ def update_profile(username):
 
 @app.route('/profile/<username>', methods=['DELETE'])
 def delete_profile(username):
-
-    # Delete a user profile by username.
+    # Delete a user profile by username
     try:
         profiles_table.delete_item(Key={'username': username})
         return jsonify({'message': 'User profile deleted successfully'}), 200
