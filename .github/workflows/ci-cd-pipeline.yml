@@ -31,7 +31,7 @@ jobs:
       # Step 3: Build and Push Docker Images
       - name: Build and Push Docker Images
         run: |
-          for service in auth-service course-service forum-service profile-service progress-service video-service watchlist-service frontend; do
+          for service in auth-service course-service forum-service profile-service progress-service video-service watchlist-service frontend-service; do
             echo "Building $service..."
             docker build -t $ECR_REGISTRY/$service:latest $service
             docker push $ECR_REGISTRY/$service:latest
