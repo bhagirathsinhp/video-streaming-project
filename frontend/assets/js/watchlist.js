@@ -37,16 +37,17 @@ async function loadWatchlist(username) {
     );
     const watchlist = await response.json();
 
-    if (response.ok) {
-      const watchlistContainer = document.getElementById("watchlistContainer");
+    const watchlistContainer = document.getElementById("watchlistContainer");
+    const emptyWatchlist = document.getElementById("emptyWatchlist");
 
+    if (response.ok) {
       if (watchlist.length === 0) {
-        watchlistContainer.innerHTML =
-          '<div class="alert alert-warning">Your watchlist is empty.</div>';
+        emptyWatchlist.classList.remove("d-none");
+        watchlistContainer.innerHTML = ""; // Clear existing content
         return;
       }
 
-      // Fetch video metadata for each item
+      emptyWatchlist.classList.add("d-none");
       const watchlistWithDetails = await Promise.all(
         watchlist.map(async (item) => {
           const videoDetails = await fetchVideoDetails(item.videoId);
@@ -57,23 +58,34 @@ async function loadWatchlist(username) {
         })
       );
 
-      // Render watchlist
       watchlistContainer.innerHTML = watchlistWithDetails
         .map(
           (item) => `
             <div class="col-md-4">
               <div class="card mb-3 shadow-sm">
+                <img 
+                  src="${
+                    item.thumbnail || "../assets/images/video-placeholder.jpg"
+                  }" 
+                  class="card-img-top" 
+                  alt="${item.title || "Video Thumbnail"}" 
+                  style="height: 180px; object-fit: cover;"
+                />
                 <div class="card-body">
                   <h5 class="card-title">${item.title || "Untitled Video"}</h5>
-                  <p class="card-text">${
+                  <p class="card-text text-muted">${
                     item.description || "No description available."
                   }</p>
                   <button class="btn btn-success btn-sm me-2" onclick="playVideo('${
                     item.videoId
-                  }')">Play</button>
-                  <button class="btn btn-danger btn-sm" onclick="removeFromWatchlist('${
+                  }')">
+                    <i class="bi bi-play-circle"></i> Play
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="confirmRemoveFromWatchlist('${
                     item.videoId
-                  }', '${username}')">Remove</button>
+                  }', '${username}')">
+                    <i class="bi bi-trash"></i> Remove
+                  </button>
                 </div>
               </div>
             </div>
@@ -85,6 +97,15 @@ async function loadWatchlist(username) {
     }
   } catch (error) {
     showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// Confirm removal of video
+function confirmRemoveFromWatchlist(videoId, username) {
+  if (
+    confirm("Are you sure you want to remove this video from your watchlist?")
+  ) {
+    removeFromWatchlist(videoId, username);
   }
 }
 

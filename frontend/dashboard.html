@@ -8,44 +8,55 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
     />
+    <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
   <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
       <div class="container-fluid">
-        <a class="navbar-brand" href="#">DREAD Dashboard</a>
+        <a class="navbar-brand text-primary fw-bold" href="#"
+          >DREAD Dashboard</a
+        >
         <button class="btn btn-outline-danger" id="logoutBtn">Logout</button>
       </div>
     </nav>
 
     <!-- Welcome Section -->
-    <div class="container mt-5">
-      <h2 class="text-center">Welcome, <span id="usernameDisplay"></span>!</h2>
-      <p class="text-center">Access the services below:</p>
+    <div class="container mt-5 text-center">
+      <h2>Welcome, <span id="usernameDisplay" class="text-success"></span>!</h2>
+      <p class="text-muted">
+        Your one-stop platform for learning and collaboration
+      </p>
     </div>
 
-    <!-- Simplified Service Cards -->
+    <!-- Services Section -->
     <div class="container mt-4">
-      <div class="row">
+      <div class="row gy-4">
         <!-- Profile Service -->
         <div class="col-md-4">
-          <div class="card">
+          <div class="card service-card shadow">
             <div class="card-body text-center">
+              <i class="bi bi-person-circle display-3 text-primary mb-3"></i>
               <h5 class="card-title">Profile</h5>
               <p class="card-text">View and update your profile details.</p>
-              <a href="./services/profile.html" class="btn btn-primary"
+              <a
+                href="./services/profile.html"
+                class="btn btn-primary hover-effect"
                 >Go to Profile</a
               >
             </div>
           </div>
         </div>
-        <!-- Course Service -->
+        <!-- Courses Service -->
         <div class="col-md-4">
-          <div class="card">
+          <div class="card service-card shadow">
             <div class="card-body text-center">
+              <i class="bi bi-book display-3 text-success mb-3"></i>
               <h5 class="card-title">Courses</h5>
               <p class="card-text">Browse and manage courses.</p>
-              <a href="./services/courses.html" class="btn btn-primary"
+              <a
+                href="./services/courses.html"
+                class="btn btn-primary hover-effect"
                 >Go to Courses</a
               >
             </div>
@@ -53,25 +64,34 @@
         </div>
         <!-- Forum Service -->
         <div class="col-md-4">
-          <div class="card">
+          <div class="card service-card shadow">
             <div class="card-body text-center">
+              <i class="bi bi-chat-left-dots display-3 text-info mb-3"></i>
               <h5 class="card-title">Forum</h5>
               <p class="card-text">Join discussions and ask questions.</p>
-              <a href="./services/forum.html" class="btn btn-primary"
+              <a
+                href="./services/forum.html"
+                class="btn btn-primary hover-effect"
                 >Go to Forum</a
               >
             </div>
           </div>
         </div>
       </div>
-      <div class="row mt-4">
-        <!-- Videos & Watchlist -->
-        <div class="col-md-6">
-          <div class="card">
+
+      <div class="row gy-4 mt-4">
+        <!-- Watchlist Service -->
+        <div class="col-md-6 offset-md-3">
+          <div class="card service-card shadow">
             <div class="card-body text-center">
+              <i
+                class="bi bi-collection-play display-3 text-secondary mb-3"
+              ></i>
               <h5 class="card-title">Watchlist</h5>
               <p class="card-text">Manage your watchlist.</p>
-              <a href="./services/watchlist.html" class="btn btn-secondary"
+              <a
+                href="./services/watchlist.html"
+                class="btn btn-secondary hover-effect"
                 >Go to Watchlist</a
               >
             </div>
@@ -79,6 +99,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 py-3 bg-light text-center shadow-sm">
+      <div class="container">
+        <p class="text-muted mb-0">
+          &copy; 2025 DREAD Platform | Empowering Education with Simplicity
+        </p>
+      </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="./assets/js/dashboard.js"></script>

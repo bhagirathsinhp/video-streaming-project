@@ -28,29 +28,38 @@ async function loadCourses() {
     const response = await fetch(`${COURSE_SERVICE_BASE_URL}/courses`);
     const courses = await response.json();
 
-    if (response.ok) {
-      const coursesContainer = document.getElementById("coursesContainer");
-      coursesContainer.innerHTML = courses
-        .map(
-          (course) => `
-            <div class="col-md-4">
-              <div class="card mb-3 shadow-sm">
-                <div class="card-body">
-                  <h5 class="card-title">${course.title}</h5>
-                  <p class="card-text">${course.description}</p>
-                  <button class="btn btn-primary" onclick="viewCourseDetails('${course.courseId}')">View Details</button>
-                </div>
-              </div>
-            </div>
-          `
-        )
-        .join("");
+    if (response.ok && courses.length > 0) {
+      renderCourses(courses);
     } else {
-      showAlert("danger", "Failed to load courses.");
+      showAlert("warning", "No courses available at the moment.");
     }
   } catch (error) {
-    showAlert("danger", "Server error. Please try again.");
+    showAlert("danger", "Failed to load courses. Please try again later.");
   }
+}
+
+// Render courses dynamically
+function renderCourses(courses) {
+  const coursesContainer = document.getElementById("coursesContainer");
+  coursesContainer.innerHTML = courses
+    .map(
+      (course) => `
+        <div class="col-md-4">
+          <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">${course.title || "Untitled Course"}</h5>
+              <p class="card-text">${
+                course.description || "No description available."
+              }</p>
+              <button class="btn btn-primary" onclick="viewCourseDetails('${
+                course.courseId
+              }')">View Details</button>
+            </div>
+          </div>
+        </div>
+      `
+    )
+    .join("");
 }
 
 // View course details with per-video progress bars
@@ -62,81 +71,89 @@ async function viewCourseDetails(courseId) {
     const course = await response.json();
 
     if (response.ok) {
-      // Fetch video metadata dynamically
-      const videosWithDetails = await Promise.all(
-        course.videos.map(async (videoId) => {
-          const videoDetails = await fetchVideoDetails(videoId);
-          return {
-            videoId,
-            title: videoDetails.title || "Untitled Video",
-            description:
-              videoDetails.description || "No description available.",
-          };
-        })
-      );
-
+      const videosWithDetails = await fetchVideosWithDetails(course.videos);
       const progressData = await fetchCourseProgress(courseId);
 
-      const courseDetailsContainer = document.getElementById(
-        "courseDetailsContainer"
-      );
-      courseDetailsContainer.innerHTML = `
-        <h3 class="mt-4">${course.title}</h3>
-        <p>${course.description}</p>
-        <p><strong>Category:</strong> ${course.category || "N/A"}</p>
-        <h5>Videos</h5>
-        <div class="row mt-4" id="videosContainer">
-          ${videosWithDetails
-            .map(
-              (video) => `
-              <div class="col-md-6">
-                <div class="card mb-3 shadow-sm">
-                  <div class="card-body">
-                    <h6>${video.title}</h6>
-                    <p>${video.description}</p>
-                    <div class="progress mb-2">
-                      <div 
-                        class="progress-bar" 
-                        role="progressbar" 
-                        style="width: ${
-                          progressData.videosWatched.includes(video.videoId)
-                            ? "100%"
-                            : "0%"
-                        };" 
-                        aria-valuenow="${
-                          progressData.videosWatched.includes(video.videoId)
-                            ? "100"
-                            : "0"
-                        }" 
-                        aria-valuemin="0" 
-                        aria-valuemax="100">
-                        ${
-                          progressData.videosWatched.includes(video.videoId)
-                            ? "Watched"
-                            : "Not Watched"
-                        }
-                      </div>
-                    </div>
-                    <button class="btn btn-sm btn-success me-2" onclick="playVideo('${
-                      video.videoId
-                    }', '${courseId}')">Play</button>
-                    <button class="btn btn-sm btn-warning" onclick="addToWatchlist('${
-                      video.videoId
-                    }', '${courseId}')">Watch Later</button>
-                  </div>
-                </div>
-              </div>
-            `
-            )
-            .join("")}
-        </div>
-      `;
+      renderCourseDetails(course, videosWithDetails, progressData);
     } else {
       showAlert("danger", "Failed to fetch course details.");
     }
   } catch (error) {
-    showAlert("danger", "Server error. Please try again.");
+    showAlert("danger", "Failed to load course details. Please try again.");
   }
+}
+
+// Fetch video details for all videos in a course
+async function fetchVideosWithDetails(videoIds) {
+  return Promise.all(
+    videoIds.map(async (videoId) => {
+      const videoDetails = await fetchVideoDetails(videoId);
+      return {
+        videoId,
+        title: videoDetails.title || "Untitled Video",
+        description: videoDetails.description || "No description available.",
+      };
+    })
+  );
+}
+
+// Render course details dynamically
+function renderCourseDetails(course, videosWithDetails, progressData) {
+  const courseDetailsContainer = document.getElementById(
+    "courseDetailsContainer"
+  );
+  courseDetailsContainer.classList.remove("d-none"); // Make details visible when data is present
+  courseDetailsContainer.innerHTML = `
+    <h3 class="mt-4">${course.title}</h3>
+    <p>${course.description}</p>
+    <p><strong>Category:</strong> ${course.category || "N/A"}</p>
+    <h5>Videos</h5>
+    <div class="row mt-4">
+      ${videosWithDetails
+        .map(
+          (video) => `
+          <div class="col-md-6">
+            <div class="card mb-3 shadow-sm">
+              <div class="card-body">
+                <h6>${video.title}</h6>
+                <p>${video.description}</p>
+                <div class="progress mb-2">
+                  <div 
+                    class="progress-bar" 
+                    role="progressbar" 
+                    style="width: ${
+                      progressData.videosWatched.includes(video.videoId)
+                        ? "100%"
+                        : "0%"
+                    };" 
+                    aria-valuenow="${
+                      progressData.videosWatched.includes(video.videoId)
+                        ? "100"
+                        : "0"
+                    }" 
+                    aria-valuemin="0" 
+                    aria-valuemax="100">
+                    ${
+                      progressData.videosWatched.includes(video.videoId)
+                        ? "Watched"
+                        : "Not Watched"
+                    }
+                  </div>
+                </div>
+                <button class="btn btn-sm btn-success me-2" onclick="playVideo('${
+                  video.videoId
+                }', '${course.courseId}')">Play</button>
+                <button class="btn btn-sm btn-warning" onclick="addToWatchlist('${
+                  video.videoId
+                }', '${course.courseId}')">Watch Later</button>
+              </div>
+            </div>
+          </div>
+        `
+        )
+        .join("")}
+    </div>
+  `;
 }
 
 // Fetch video details from the Video Service
@@ -153,7 +170,7 @@ async function fetchVideoDetails(videoId) {
   }
 }
 
-// Fetch course progress
+// Fetch course progress for the logged-in user
 async function fetchCourseProgress(courseId) {
   const username = localStorage.getItem("username");
   if (!username) return { videosWatched: [] };
@@ -197,7 +214,7 @@ async function playVideo(videoId, courseId) {
       showAlert("danger", "Failed to stream video.");
     }
   } catch (error) {
-    showAlert("danger", "Server error. Please try again.");
+    showAlert("danger", "Failed to load video. Please try again.");
   }
 }
 
@@ -224,9 +241,9 @@ async function updateProgress(courseId, videoId) {
 function showAlert(type, message) {
   const alertContainer = document.getElementById("alertContainer");
   alertContainer.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
 }

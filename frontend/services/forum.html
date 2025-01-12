@@ -8,40 +8,52 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
     />
+    <link rel="stylesheet" href="../assets/css/styles.css" />
   </head>
   <body>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
       <div class="container-fluid">
-        <a class="navbar-brand" href="../dashboard.html">DREAD Dashboard</a>
+        <a class="navbar-brand text-primary" href="../dashboard.html"
+          >DREAD Dashboard</a
+        >
         <button class="btn btn-outline-danger" id="logoutBtn">Logout</button>
       </div>
     </nav>
 
     <!-- Main Content -->
     <div class="container mt-5">
-      <h2 class="text-center">Forum</h2>
+      <h2 class="text-center mb-4 text-primary">Forum</h2>
       <div id="alertContainer" class="mt-3"></div>
 
       <!-- Course Selector -->
-      <div id="courseSelector" class="mb-3">
+      <div id="courseSelector" class="mb-4">
         <label for="selectedCourse" class="form-label">Select a Course:</label>
-        <select id="selectedCourse" class="form-select"></select>
+        <select
+          id="selectedCourse"
+          class="form-select"
+          aria-label="Course Selector"
+        >
+          <option value="">Select a Course</option>
+        </select>
       </div>
 
       <!-- Start Discussion Button -->
-      <button
-        class="btn btn-primary mb-3"
-        data-bs-toggle="modal"
-        data-bs-target="#startDiscussionModal"
-      >
-        Start Discussion
-      </button>
+      <div class="text-center mb-4">
+        <button
+          class="btn btn-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#startDiscussionModal"
+        >
+          Start Discussion
+        </button>
+      </div>
 
       <!-- Discussions Container -->
       <div class="row" id="discussionsContainer"></div>
     </div>
 
+    <!-- Modals -->
     <!-- Start Discussion Modal -->
     <div
       class="modal fade"
@@ -71,6 +83,7 @@
                   type="text"
                   class="form-control"
                   id="discussionTitle"
+                  placeholder="Enter discussion title"
                   required
                 />
               </div>
@@ -81,7 +94,8 @@
                 <textarea
                   class="form-control"
                   id="discussionContent"
-                  rows="3"
+                  rows="4"
+                  placeholder="Enter discussion content"
                   required
                 ></textarea>
               </div>
@@ -102,11 +116,11 @@
       aria-labelledby="threadDetailsModalLabel"
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="threadDetailsModalLabel">
-              Thread Details
+              <i class="bi bi-chat-dots-fill"></i> Thread Details
             </h5>
             <button
               type="button"
@@ -116,10 +130,13 @@
             ></button>
           </div>
           <div class="modal-body">
-            <h5 id="threadTitle"></h5>
-            <p id="threadContent"></p>
+            <div class="thread-info mb-3">
+              <h5 id="threadTitle" class="text-primary"></h5>
+              <p id="threadAuthor" class="text-muted small"></p>
+            </div>
+            <p id="threadContent" class="mb-4"></p>
             <h6>Replies</h6>
-            <ul id="threadReplies"></ul>
+            <ul id="threadReplies" class="list-group"></ul>
             <form id="replyForm" class="mt-3">
               <div class="mb-3">
                 <label for="replyContent" class="form-label">Add a Reply</label>
@@ -130,7 +147,9 @@
                   required
                 ></textarea>
               </div>
-              <button type="submit" class="btn btn-primary">Post Reply</button>
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-reply"></i> Post Reply
+              </button>
             </form>
           </div>
           <div class="modal-footer">
@@ -139,7 +158,7 @@
               id="deleteThreadBtn"
               onclick="deleteThread()"
             >
-              Delete Thread
+              <i class="bi bi-trash-fill"></i> Delete Thread
             </button>
           </div>
         </div>
