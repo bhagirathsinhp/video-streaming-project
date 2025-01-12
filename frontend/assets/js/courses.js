@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const videoPlayer = document.getElementById("videoPlayer");
     videoPlayer.pause(); // Pause video playback
     videoPlayer.currentTime = 0; // Reset video playback
-    videoPlayer.src = ""; // Clear the video source
+    videoPlayer.removeAttribute("src"); // Remove the video source to avoid errors
   });
 });
 
@@ -53,7 +53,7 @@ async function loadCourses() {
   }
 }
 
-// View course details on the same page
+// View course details with per-video progress bars
 async function viewCourseDetails(courseId) {
   try {
     const response = await fetch(
@@ -62,6 +62,21 @@ async function viewCourseDetails(courseId) {
     const course = await response.json();
 
     if (response.ok) {
+      // Fetch video metadata dynamically
+      const videosWithDetails = await Promise.all(
+        course.videos.map(async (videoId) => {
+          const videoDetails = await fetchVideoDetails(videoId);
+          return {
+            videoId,
+            title: videoDetails.title || "Untitled Video",
+            description:
+              videoDetails.description || "No description available.",
+          };
+        })
+      );
+
+      const progressData = await fetchCourseProgress(courseId);
+
       const courseDetailsContainer = document.getElementById(
         "courseDetailsContainer"
       );
@@ -71,15 +86,43 @@ async function viewCourseDetails(courseId) {
         <p><strong>Category:</strong> ${course.category || "N/A"}</p>
         <h5>Videos</h5>
         <div class="row mt-4" id="videosContainer">
-          ${course.videos
+          ${videosWithDetails
             .map(
               (video) => `
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="card mb-3 shadow-sm">
                   <div class="card-body">
-                    <h6>${video}</h6>
-                    <button class="btn btn-sm btn-success me-2" onclick="playVideo('${video}', '${courseId}')">Play</button>
-                    <button class="btn btn-sm btn-warning" onclick="addToWatchlist('${video}', '${courseId}')">Watch Later</button>
+                    <h6>${video.title}</h6>
+                    <p>${video.description}</p>
+                    <div class="progress mb-2">
+                      <div 
+                        class="progress-bar" 
+                        role="progressbar" 
+                        style="width: ${
+                          progressData.videosWatched.includes(video.videoId)
+                            ? "100%"
+                            : "0%"
+                        };" 
+                        aria-valuenow="${
+                          progressData.videosWatched.includes(video.videoId)
+                            ? "100"
+                            : "0"
+                        }" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                        ${
+                          progressData.videosWatched.includes(video.videoId)
+                            ? "Watched"
+                            : "Not Watched"
+                        }
+                      </div>
+                    </div>
+                    <button class="btn btn-sm btn-success me-2" onclick="playVideo('${
+                      video.videoId
+                    }', '${courseId}')">Play</button>
+                    <button class="btn btn-sm btn-warning" onclick="addToWatchlist('${
+                      video.videoId
+                    }', '${courseId}')">Watch Later</button>
                   </div>
                 </div>
               </div>
@@ -87,14 +130,49 @@ async function viewCourseDetails(courseId) {
             )
             .join("")}
         </div>
-        <div id="courseProgress" class="mt-3"></div>
       `;
-      await loadProgress(courseId);
     } else {
       showAlert("danger", "Failed to fetch course details.");
     }
   } catch (error) {
     showAlert("danger", "Server error. Please try again.");
+  }
+}
+
+// Fetch video details from the Video Service
+async function fetchVideoDetails(videoId) {
+  try {
+    const response = await fetch(`${VIDEO_SERVICE_BASE_URL}/videos/${videoId}`);
+    if (response.ok) {
+      return await response.json(); // Return video details
+    }
+    return {};
+  } catch (error) {
+    console.error("Failed to fetch video details:", error);
+    return {};
+  }
+}
+
+// Fetch course progress
+async function fetchCourseProgress(courseId) {
+  const username = localStorage.getItem("username");
+  if (!username) return { videosWatched: [] };
+
+  try {
+    const response = await fetch(
+      `${PROGRESS_SERVICE_BASE_URL}/progress/${username}`
+    );
+    const progress = await response.json();
+
+    if (response.ok) {
+      return (
+        progress.find((p) => p.courseId === courseId) || { videosWatched: [] }
+      );
+    }
+    return { videosWatched: [] };
+  } catch (error) {
+    console.error("Failed to fetch progress:", error);
+    return { videosWatched: [] };
   }
 }
 
@@ -114,30 +192,9 @@ async function playVideo(videoId, courseId) {
 
       // Update progress after video starts
       await updateProgress(courseId, videoId);
+      await viewCourseDetails(courseId); // Refresh course details to update progress bars
     } else {
       showAlert("danger", "Failed to stream video.");
-    }
-  } catch (error) {
-    showAlert("danger", "Server error. Please try again.");
-  }
-}
-
-// Add video to watchlist
-async function addToWatchlist(videoId, courseId) {
-  const username = localStorage.getItem("username");
-  if (!username) return;
-
-  try {
-    const response = await fetch(`${WATCHLIST_SERVICE_BASE_URL}/watchlist`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, videoId, courseId }),
-    });
-
-    if (response.ok) {
-      showAlert("success", "Video added to watchlist.");
-    } else {
-      showAlert("danger", "Failed to add video to watchlist.");
     }
   } catch (error) {
     showAlert("danger", "Server error. Please try again.");
@@ -150,55 +207,16 @@ async function updateProgress(courseId, videoId) {
   if (!username) return;
 
   try {
-    const response = await fetch(
-      `${PROGRESS_SERVICE_BASE_URL}/progress/${username}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId,
-          videosWatched: [videoId], // Add the video to the watched list
-          progressPercentage: 0, // Placeholder; update with actual logic
-        }),
-      }
-    );
-
-    if (response.ok) {
-      // Reload progress bar dynamically
-      await loadProgress(courseId);
-    } else {
-      console.error("Failed to update progress.");
-    }
+    await fetch(`${PROGRESS_SERVICE_BASE_URL}/progress/${username}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseId,
+        videosWatched: [videoId],
+      }),
+    });
   } catch (error) {
-    console.error("Server error while updating progress:", error);
-  }
-}
-
-// Load progress for the course
-async function loadProgress(courseId) {
-  const username = localStorage.getItem("username");
-  if (!username) return;
-
-  try {
-    const response = await fetch(
-      `${PROGRESS_SERVICE_BASE_URL}/progress/${username}`
-    );
-    const progress = await response.json();
-
-    if (response.ok) {
-      const courseProgress = progress.find((p) => p.courseId === courseId);
-      document.getElementById("courseProgress").innerHTML = `
-        <strong>Progress:</strong> ${
-          courseProgress ? courseProgress.progressPercentage : 0
-        }% completed
-      `;
-    } else {
-      document.getElementById("courseProgress").innerHTML =
-        "<strong>Progress:</strong> 0% completed";
-    }
-  } catch (error) {
-    document.getElementById("courseProgress").innerHTML =
-      "<strong>Progress:</strong> Unable to fetch progress";
+    console.error("Failed to update progress:", error);
   }
 }
 
