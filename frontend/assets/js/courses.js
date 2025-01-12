@@ -102,7 +102,7 @@ function renderCourseDetails(course, videosWithDetails, progressData) {
   const courseDetailsContainer = document.getElementById(
     "courseDetailsContainer"
   );
-  courseDetailsContainer.classList.remove("d-none"); // Make details visible when data is present
+  courseDetailsContainer.classList.remove("d-none");
   courseDetailsContainer.innerHTML = `
     <h3 class="mt-4">${course.title}</h3>
     <p>${course.description}</p>
@@ -246,4 +246,38 @@ function showAlert(type, message) {
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
   `;
+}
+
+async function addToWatchlist(videoId, courseId) {
+  const username = localStorage.getItem("username");
+  if (!username) {
+    showAlert("warning", "Please log in to save videos to your watchlist.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${WATCHLIST_SERVICE_BASE_URL}/watchlist`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        videoId,
+        courseId, // Optional: Include courseId if needed in the backend
+        addedAt: new Date().toISOString(), // Optional: Timestamp
+      }),
+    });
+
+    if (response.ok) {
+      showAlert("success", "Video saved to your watchlist!");
+    } else {
+      const errorData = await response.json();
+      console.error("Error:", errorData);
+      showAlert("danger", errorData.error || "Failed to save video.");
+    }
+  } catch (error) {
+    console.error("Failed to save video to watchlist:", error);
+    showAlert("danger", "Server error. Please try again.");
+  }
 }
