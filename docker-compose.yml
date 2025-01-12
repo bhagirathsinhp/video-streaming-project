@@ -81,8 +81,8 @@ services:
       - app-network
 
   frontend:
-    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/frontend-service:latest
-    container_name: frontend-service
+    image: 303553230681.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+    container_name: frontend
     ports:
       - "80:80"
     networks:
