@@ -1,48 +1,370 @@
-/* Card Styling */
-.card {
-  border: none;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* Global Variables */
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --base-spacing: 1rem;
+  --transition-speed: 0.3s;
 }
 
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+/* General Styling */
+body {
+  font-family: var(--font-family);
+  background: linear-gradient(to bottom right, #e9f4ff, #ffffff);
+  color: var(--dark-color);
+  margin: 0;
+  padding: 0;
 }
 
-/* Button Styling */
-.btn-primary {
-  background-color: #007bff;
-  border: none;
-  border-radius: 5px;
-  padding: 10px 20px;
-  transition: background-color 0.3s ease;
+h1 {
+  font-size: 2.2rem;
+  color: var(--primary-color);
 }
 
-.btn-primary:hover {
-  background-color: #0056b3;
+h2 {
+  font-size: 2rem;
+  color: var(--primary-color);
 }
 
-/* Text Styling */
-.card-title {
-  font-size: 1.25rem;
+p {
+  color: var(--secondary-color);
+  line-height: 1.6;
+}
+
+/* Navbar */
+.navbar {
+  padding: 1rem;
+  background: #f8f9fa;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  color: var(--primary-color);
   font-weight: bold;
 }
 
-.card-text {
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
-/* Header Styling */
-h1 {
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.text-muted {
+.navbar .btn {
   font-size: 1rem;
-  margin-bottom: 2rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Footer */
+.footer {
+  /* background: #f8f9fa; */
+  font-size: 0.9rem;
+  padding: 1rem;
+  color: var(--secondary-color);
+  text-align: center;
+}
+
+/* Auth Card */
+.auth-card {
+  max-width: 500px;
+  border-radius: 12px;
+  background: #fff;
+  padding: 3rem;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+  margin: auto;
+}
+
+.nav-tabs .nav-link {
+  color: var(--secondary-color);
+  font-weight: bold;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+}
+
+input {
+  font-size: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+}
+
+input:focus {
+  box-shadow: 0 0 5px var(--primary-color);
+}
+
+/* Alerts */
+.alert {
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  border-radius: 5px;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  border-radius: 5px;
+  transition: background-color var(--transition-speed);
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  border: none;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn-warning {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.btn-warning:hover {
+  background-color: #c82333;
+}
+
+/* Cards */
+.card {
+  border-radius: 10px;
+  transition: box-shadow 0.3s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+  box-shadow: none; /* No hover effect on the entire card */
+}
+
+.card-title {
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.card-body i {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+}
+
+/* Course Section */
+#coursesContainer .card {
+  min-height: 200px; /* Ensure consistent card sizes */
+}
+
+#coursesContainer .btn {
+  transition: background-color var(--transition-speed);
+}
+
+#coursesContainer .btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Course Details Section */
+#courseDetailsContainer {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Hide Details Initially */
+.d-none {
+  display: none;
+}
+
+/* Progress Bar */
+.progress {
+  background-color: var(--light-color);
+  border-radius: 10px;
+  height: 20px;
+}
+
+.progress-bar {
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+/* Video Player Modal */
+#videoPlayer {
+  border-radius: 10px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.8rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .btn {
+    font-size: 0.9rem;
+  }
+
+  #coursesContainer .card {
+    min-height: 180px; /* Adjust for smaller screens */
+  }
+}
+
+/* Forum Page Styles */
+/* Thread Modal Styling */
+.modal-dialog-centered {
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.modal-content {
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1.2rem;
+  border-bottom: none;
+}
+
+.modal-header .modal-title {
+  font-size: 1.5rem;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.thread-info {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+#threadReplies {
+  list-style: none;
+  padding: 0;
+}
+
+#threadReplies .list-group-item {
+  background-color: var(--light-color);
+  border-radius: 5px;
+  margin-bottom: 10px;
+  padding: 15px;
+  border: 1px solid #ddd;
+}
+
+#threadReplies .list-group-item strong {
+  color: var(--primary-color);
+}
+
+/* Discussion Cards */
+#discussionsContainer .card {
+  border-radius: 10px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+#discussionsContainer .card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Buttons */
+#discussionsContainer .btn i {
+  margin-right: 5px;
+}
+
+/* Dropdown Active Style */
+#selectedCourse option:checked {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Watchlist Page Styles */
+
+/* Watchlist Cards */
+#watchlistContainer .card {
+  min-height: 350px;
+  border-radius: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  text-align: center;
+}
+
+#watchlistContainer .card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+#watchlistContainer .card-text {
+  color: var(--secondary-color);
+  font-size: 0.9rem;
+}
+
+/* Empty Watchlist State */
+#emptyWatchlist img {
+  opacity: 0.7;
+}
+
+/* Modal Styling */
+.modal-dialog-centered {
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.modal-content {
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons - Smaller and Consistent Size */
+.card .btn {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 5px;
+  transition: background-color var(--transition-speed), transform 0.2s ease;
+}
+
+.card .btn i {
+  font-size: 1rem;
+  margin-right: 5px;
+}
+
+.card .btn-success {
+  background-color: var(--success-color);
+}
+
+.card .btn-success:hover {
+  background-color: #218838;
+}
+
+.card .btn-danger {
+  background-color: var(--danger-color);
+}
+
+.card .btn-danger:hover {
+  background-color: #c82333;
 }

@@ -95,7 +95,6 @@ async function updateProfile(username) {
 
 async function deleteProfile(username, password) {
   try {
-    // Step 1: Validate the password with the Auth Service
     const authResponse = await fetch(`${AUTH_SERVICE_BASE_URL}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,7 +106,6 @@ async function deleteProfile(username, password) {
       return;
     }
 
-    // Step 2: Delete the profile
     const deleteResponse = await fetch(
       `${PROFILE_SERVICE_BASE_URL}/profile/${username}`,
       {
@@ -132,19 +130,19 @@ async function deleteProfile(username, password) {
 function showAlert(type, message) {
   const alertContainer = document.getElementById("alertContainer");
   alertContainer.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
 }
 
 function showDeleteAlert(type, message) {
   const alertContainer = document.getElementById("deleteAlertContainer");
   alertContainer.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
 }
