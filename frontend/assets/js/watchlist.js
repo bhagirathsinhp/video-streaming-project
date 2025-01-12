@@ -148,7 +148,9 @@ async function playVideo(videoId) {
 async function removeFromWatchlist(videoId, username) {
   try {
     const response = await fetch(
-      `${WATCHLIST_SERVICE_BASE_URL}/watchlist/${videoId}`,
+      `${WATCHLIST_SERVICE_BASE_URL}/watchlist/${videoId}?username=${encodeURIComponent(
+        username
+      )}`,
       {
         method: "DELETE",
       }
