@@ -1,0 +1,53 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      ECR_REGISTRY: 303553230681.dkr.ecr.us-east-1.amazonaws.com
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      # Step 3: Build and Push Docker Images
+      - name: Build and Push Docker Images
+        run: |
+          for service in auth-service course-service forum-service profile-service progress-service video-service watchlist-service frontend; do
+            echo "Building $service..."
+            docker build -t $ECR_REGISTRY/$service:latest $service
+            docker push $ECR_REGISTRY/$service:latest
+          done
+
+      # Step 4: Deploy to EC2
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ec2-user@174.129.100.156 << 'EOF'
+            cd /path/to/project
+            docker compose pull
+            docker compose up -d
+          EOF
+        env:
+          EC2_KEY: ${{ secrets.EC2_KEY }}
+      - name: Add EC2 Key
+        run: |
+          echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
