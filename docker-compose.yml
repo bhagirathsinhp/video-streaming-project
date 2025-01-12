@@ -85,8 +85,24 @@ services:
     container_name: frontend
     ports:
       - "80:80"
+    environment:
+      AUTH_SERVICE_URL: "http://auth-service:5000"
+      COURSE_SERVICE_URL: "http://course-service:5001"
+      VIDEO_SERVICE_URL: "http://video-service:5005"
+      WATCHLIST_SERVICE_URL: "http://watchlist-service:5006"
+      PROGRESS_SERVICE_URL: "http://progress-service:5004"
+      FORUM_SERVICE_BASE_URL: "http://forum-service:5002"
+      PROFILE_SERVICE_BASE_URL: "http://profile-service:5003"
     networks:
       - app-network
+    depends_on:
+      - auth-service
+      - course-service
+      - video-service
+      - watchlist-service
+      - progress-service
+      - forum-service
+      - profile-service
 
 networks:
   app-network:

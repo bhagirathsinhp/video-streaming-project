@@ -19,16 +19,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Log in to Amazon ECR
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      # Step 2: Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # Step 3: Build and Push Docker Images
+      # Step 3: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Step 4: Build and Push Docker Images
       - name: Build and Push Docker Images
         run: |
           for service in auth-service course-service forum-service profile-service progress-service video-service watchlist-service frontend; do
@@ -37,17 +41,23 @@ jobs:
             docker push $ECR_REGISTRY/$service:latest
           done
 
-      # Step 4: Add EC2 Key
+      # Step 5: Add EC2 Key
       - name: Add EC2 Key
         run: |
           echo "${{ secrets.EC2_KEY }}" > video-devops-project.pem
           chmod 600 video-devops-project.pem
 
-      # Step 5: Deploy to EC2
+      # Step 6: Deploy to EC2
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i video-devops-project.pem ec2-user@174.129.100.156 << 'EOF'
-            cd /home/ec2-user
-            docker-compose pull
-            docker-compose up -d
+          ssh -i video-devops-project.pem -o "StrictHostKeyChecking no" ec2-user@174.129.100.156 << 'EOF'
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+
+          for service in auth-service course-service forum-service profile-service progress-service video-service watchlist-service frontend; do
+            echo "Pulling $service..."
+            docker pull $ECR_REGISTRY/$service:latest
+          done
+
+          docker-compose down || true
+          docker-compose up -d
           EOF
