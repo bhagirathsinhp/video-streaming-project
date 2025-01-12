@@ -48,6 +48,6 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i video-devops-project.pem ec2-user@174.129.100.156 << 'EOF'
             cd /home/ec2-user
-            docker compose pull
-            docker compose up -d
+            docker-compose pull
+            docker-compose up -d
           EOF
