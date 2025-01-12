@@ -41,7 +41,7 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ec2-user@174.129.100.156 << 'EOF'
-            cd /path/to/project
+            cd /home/ec2-user
             docker compose pull
             docker compose up -d
           EOF
